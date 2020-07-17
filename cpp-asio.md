@@ -39,42 +39,89 @@ asio::io_context ioContext;
 #### Add Functions to the IO Context
 
 ```cpp
-ioContext.post(handler_function);
+asio::post(ioContext, handler_function);
 ```
 
 ```cpp
-ioContext.post([](){ /* code */ });
+asio::post(ioContext, [](){ /* code */ });
+```
+
+#### Add timer function
+
+```cpp
+asio::steady_timer timer(service, std::chrono::seconds(1));
+timer.async_wait([&](auto...) {
+  /* run after 1 second */
+});
 ```
 
 #### Run posted functions
  
 ```cpp
-// blocking, run all functions until done
+// blocking, run until all work is done
 ioContext.run();
 ```
 
-### IO Context as worker
+```cpp
+// blocking, run until now + 1s
+ioContext.run_until(/* TODO */);
+```
+
+```cpp
+// blocking, run until now + 1s
+ioContext.run_until(/* TODO */);
+```
+
+### Multithreading
+
+#### Create strand
+
+```cpp
+asio::strand s1{ioContext.get_executor()};
+asio::strand s2{ioContext.get_executor()};
+```
+
+#### add strand command
+
+```cpp
+asio::post(s1, [](){ /* 1: Code will not be interrupted by 2 */ });
+asio::post(s1, [](){ /* 2: Code will not be interrupted by 1 */ });
+asio::post(s2, [](){ /* Can interupt 1 and 2 */ });
+```
+
+### IO Context running in background
+
+#### Run in context loop on other thread
+
+```cpp
+asio::io_context ioContext;
+std::Thread t1{[](){ ioContext.run(); }};
+```
+
+#### Stop ioContext 
 
 #### Set ioContext always wait for tasks in queue
 
 ```cpp
-// TODO -> executor_work_guard
-// forever blocking
+asio::io_context::work _work{ioContext};
+// Forever blocking
 ioContext.run();
 ```
 
-#### Run until time
+#### Blocking for 1 second
 
 ```cpp
-// TODO
-ioContext.run_until();
+ioContext.run_until(
+  std::chrono::high_resolution_clock::now() + 
+  std::chrono::seconds(1)
+);
 ```
 
 ### Sockets
 {: .-prime}
 
 ```cpp
-
+// TODO
 ```
 
 ### SSL
@@ -83,7 +130,7 @@ ioContext.run_until();
 `#include <asio/ssl.hpp>`
 
 ```cpp
-
+// TODO
 ```
 
 ## C++17
@@ -105,13 +152,27 @@ TODO
 ```cpp
 asio::io_context ioContext;
 
-ioContext.post([=]() {
-  printf("Hello World");
-})
+ioContext.post([]() {
+  // Code ...
+});
 
-// runs all posted functions
+// Runs all posted functions
 ioContext.run();
 ```
 
 #### aysnc-iocontext.cpp
 {: .-file}
+
+```cpp
+asio::io_context ioContext;
+asio::io_context::work _work{ioContext};
+
+// Start running context in other thread
+std::thread t{[&ioContext](){ ioContext.run(); }};
+
+// Code ...
+
+// Cleanup / stop
+ioContext.stop();
+t.join();
+```
