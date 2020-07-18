@@ -36,20 +36,38 @@ model using a modern C++ approach.
 asio::io_context ioContext;
 ```
 
-#### Add Functions to the IO Context
+#### Run Function
 
 ```cpp
-asio::post(ioContext, handler_function);
+asio::dispatch(ioContext, &handler_function)
+```
+
+#### Add Functions to the IO Context queue
+
+```cpp
+asio::post(ioContext, &handler_function);
 ```
 
 ```cpp
 asio::post(ioContext, [](){ /* code */ });
 ```
 
+#### Add object method (C++11)
+
+```cpp
+asio::post(
+  ioContext,
+  std::bind(&BaseClass::method, &instance)
+);
+```
+
 #### Add timer function
 
 ```cpp
-asio::steady_timer timer(service, std::chrono::seconds(1));
+asio::steady_timer timer(
+  ioContext,
+  std::chrono::seconds(1)
+);
 timer.async_wait([&](auto...) {
   /* run after 1 second */
 });
@@ -63,13 +81,11 @@ ioContext.run();
 ```
 
 ```cpp
-// blocking, run until now + 1s
-ioContext.run_until(/* TODO */);
-```
-
-```cpp
-// blocking, run until now + 1s
-ioContext.run_until(/* TODO */);
+// blocking until now + 1s or all work is done
+ioContext.run_until(
+  std::chrono::high_resolution_clock::now() + 
+  std::chrono::seconds(1)
+);
 ```
 
 ### Multithreading
@@ -81,12 +97,18 @@ asio::strand s1{ioContext.get_executor()};
 asio::strand s2{ioContext.get_executor()};
 ```
 
-#### add strand command
+#### Add strand command
 
 ```cpp
-asio::post(s1, [](){ /* 1: Code will not be interrupted by 2 */ });
-asio::post(s1, [](){ /* 2: Code will not be interrupted by 1 */ });
-asio::post(s2, [](){ /* Can interupt 1 and 2 */ });
+asio::post(s1, [](){ 
+  /* 1: Code will not be interrupted by 2 */ 
+});
+asio::post(s1, [](){ 
+  /* 2: Code will not be interrupted by 1 */ 
+});
+asio::post(s2, [](){ 
+  /* Can interupt 1 and 2 */ 
+});
 ```
 
 ### IO Context running in background
@@ -95,7 +117,9 @@ asio::post(s2, [](){ /* Can interupt 1 and 2 */ });
 
 ```cpp
 asio::io_context ioContext;
-std::Thread t1{[](){ ioContext.run(); }};
+std::Thread t1{[](){ 
+  ioContext.run(); 
+}};
 ```
 
 #### Stop ioContext 
@@ -117,20 +141,146 @@ ioContext.run_until(
 );
 ```
 
-### Sockets
+### Fork
+
+// TODO
+
+### Futures
+
+// TODO
+
+## Sockets
+{: .-three-column}
+
+### IO Sockets
 {: .-prime}
 
 ```cpp
 // TODO
 ```
 
+### Buffers
+
+```cpp
+// TODO
+```
+
+### IP Sockets
+{: .-prime}
+
+#### TCP Resolve
+
+```cpp
+using asio::ip::tcp;
+auto endpoints = tcp::resolver{ioContext}
+  .resolve("host", "port");
+```
+
+#### UDP Resolve
+
+```cpp
+using asio::ip::udp;
+auto endpoints = udp::resolver{ioContext}
+  .resolve("host", "port");
+```
+
+### Connect
+
+```cpp
+// TODO
+```
+
+### Bind
+
+```cpp
+// TODO
+```
+
+### Acceptors
+
+```cpp
+// TODO
+```
+
+#### create socket
+
+```cpp
+tcp::socket socket(ioContext);
+```
+
+```cpp
+udp::socket socket(ioContext);
+```
+
+#### Connect
+
+```cpp
+// Todo
+```
+
+#### Connect async
+
+```cpp
+asio::async_connect(
+  socket, endpoints,
+  [this](
+    const std::error_code& error,
+    const tcp::endpoint& /*endpoint*/
+  ) {
+    /* Connected to endpoint */
+  }
+);
+```
+
+
 ### SSL
 {: .-prime}
 
 `#include <asio/ssl.hpp>`
 
+#### SSL Context
+
 ```cpp
-// TODO
+// ::tlsv1 | ::tlsv1_1 | ::tlsv1_2 | ::tlsv1_3
+asio::ssl::context 
+  ctx(asio::ssl::context::tlsv1_2);
+```
+
+#### SSL socket
+
+```cpp
+asio::ssl::stream<tcp::socket> sslSocket{ioContext, ctx};
+```
+
+#### SSL connect
+
+```cpp
+asio::connect(sslSocket.lowest_layer(), endpoints);
+```
+
+#### SSL async connect
+
+```cpp
+asio::async_connect(
+  sslSocket.lowest_layer(),
+  endpoints,
+  [this](
+    const std::error_code& error,
+    const tcp::endpoint& /*endpoint*/
+  ) {
+    /* connection done -> Handshake? */
+  }
+);
+```
+
+#### SSL handshake
+
+#### SSL async handshake
+
+#### Enable verify server
+
+```cpp
+ctx.load_verify_file("ca.pem");
 ```
 
 ## C++17
@@ -168,11 +318,28 @@ asio::io_context ioContext;
 asio::io_context::work _work{ioContext};
 
 // Start running context in other thread
-std::thread t{[&ioContext](){ ioContext.run(); }};
+std::thread t{[&ioContext](){ 
+  ioContext.run(); 
+}};
 
 // Code ...
 
 // Cleanup / stop
 ioContext.stop();
 t.join();
+```
+
+#### C++20 jthread
+
+```cpp
+asio::io_context ioContext;
+asio::io_context::work _work{ioContext};
+
+// auto join end of scope
+std::jthread t{[&ioContext](){ 
+  ioContext.run(); 
+}};
+
+// stop when ever (will run last task in queue)
+ioContext.stop();
 ```
