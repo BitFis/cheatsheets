@@ -161,9 +161,19 @@ ioContext.run_until(
 
 ### Buffers
 
+#### Const Buffer
+
 ```cpp
-// TODO
+asio::const_buffer("Hello\n", 6);
 ```
+
+#### Dynamic Buffer
+
+// TODO
+
+#### Streams
+
+// TODO
 
 ### IP Sockets
 {: .-prime}
@@ -232,6 +242,32 @@ asio::async_connect(
 );
 ```
 
+#### Write
+
+```cpp
+asio::write(sslSocket, buffer);
+```
+
+#### Write Async
+
+```cpp
+asio::async_write(sslSocket, buffer,
+{}(auto..){
+  // TODO
+});
+```
+
+#### Read
+
+```cpp
+// TODO
+```
+
+#### Read Async
+
+```cpp
+// TODO
+```
 
 ### SSL
 {: .-prime}
@@ -283,12 +319,12 @@ asio::async_connect(
 ctx.load_verify_file("ca.pem");
 ```
 
-## C++17
+## Co-routines
 {: .-three-column}
 
-ASIO without Boost using c++ built in coroutines.
+Supported currently with (clang = c++17 | GNUC = c++20 | MSCV > 19.00-23506).
 
-TODO
+- [Should be integrated with C++20](https://en.cppreference.com/w/cpp/language/coroutines)
 
 ## Examples
 {: .-three-column}
